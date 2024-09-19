@@ -126,7 +126,7 @@ function App() {
 
   return (
       <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-gray-800 text-white p-8">
-        <h1 className="text-6xl text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600 font-extrabold tracking-wide my-8 ">
+        <h1 className="text-6xl text-fuchsia-500 text-center font-extrabold tracking-wide my-8 ">
           AI Image Generator
         </h1>
         <div className="flex justify-center mb-8">
