@@ -1,23 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./utils/supabase";
 
-interface GenerationResponse {
-  artifacts: Array<{
-    base64: string;
-    seed: number;
-    finishReason: string;
-  }>;
-}
-
 function App() {
   const [imageList, setImageList] = useState<string[]>([]);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const engineId = "stable-diffusion-v1-6";
   const apiKey = import.meta.env.VITE_STABILITY_API_KEY;
-  const apiHost = "https://api.stability.ai";
+  const apiHost = "https://api.stability.ai/v2beta/stable-image/generate/sd3";
 
   useEffect(() => {
     fetchImages();
@@ -59,39 +50,39 @@ function App() {
   }
 
   const handleGenerateImage = async () => {
-    const response = await fetch(
-      `${apiHost}/v1/generation/${engineId}/text-to-image`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          text_prompts: [
-            {
-              text: prompt,
-            },
-          ],
-          cfg_scale: 7,
-          height: 1024,
-          width: 1024,
-          steps: 30,
-          samples: 1,
-        }),
+    const formData = new FormData();
+    formData.append("prompt", prompt); // 'text_prompts' ではなく 'prompt'
+    formData.append("model", "sd3.5-large"); // または "sd3.5-medium"
+    formData.append("output_format", "png"); // 形式を指定 (png, jpeg, webp)
+
+    try {
+      const response = await fetch(
+        `${apiHost}`,
+        {
+          method: "POST",
+          headers: {
+            // ※ Content-TypeはFormDataを使用する場合、自動設定されるため明示しないでください
+            Authorization: `Bearer ${apiKey}`,
+            Accept: "image/*", // 画像バイナリを受け取るために指定
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Error: ${errorData.errors}`);
       }
-    );
 
-    if (!response.ok) {
+      // 2. バイナリデータ（Blob）として画像を取得
+      const imageBlob = await response.blob();
+      const base64Image = URL.createObjectURL(imageBlob);
+
+      setGeneratedImage(base64Image);
       setIsLoading(false);
-      throw new Error(`Non-200 response: ${await response.text()}`);
-    }
-
-    const responseJSON = (await response.json()) as GenerationResponse;
-    const base64Image = responseJSON.artifacts[0].base64;
-    setGeneratedImage(`data:image/png;base64,${base64Image}`);
-    setIsLoading(false);
+    } catch (error) {
+    console.error("生成に失敗しました:", error);
+    };
   };
 
   const handleSaveImage = async () => {
