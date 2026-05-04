@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./utils/supabase";
+import { InferenceClient } from "@huggingface/inference";
 
 function App() {
   const [imageList, setImageList] = useState<string[]>([]);
@@ -7,8 +8,7 @@ function App() {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const apiKey = import.meta.env.VITE_STABILITY_API_KEY;
-  const apiHost = "https://api.stability.ai/v2beta/stable-image/generate/sd3";
+  const model = "stabilityai/stable-diffusion-xl-base-1.0";
 
   useEffect(() => {
     fetchImages();
@@ -50,60 +50,36 @@ function App() {
   }
 
   const handleGenerateImage = async () => {
-    const formData = new FormData();
-    formData.append("prompt", prompt); // 'text_prompts' ではなく 'prompt'
-    formData.append("model", "sd3.5-large"); // または "sd3.5-medium"
-    formData.append("output_format", "png"); // 形式を指定 (png, jpeg, webp)
+    setIsLoading(true);
+    const hf = new InferenceClient(import.meta.env.VITE_STABILITY_API_KEY);
 
     try {
-      const response = await fetch(
-        `${apiHost}`,
-        {
-          method: "POST",
-          headers: {
-            // ※ Content-TypeはFormDataを使用する場合、自動設定されるため明示しないでください
-            Authorization: `Bearer ${apiKey}`,
-            Accept: "image/*", // 画像バイナリを受け取るために指定
-          },
-          body: formData,
-        }
-      );
+      const blob: Blob = await hf.textToImage({
+        model: model,
+        inputs: prompt,
+      }) as any;
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Error: ${errorData.errors}`);
-      }
-
-      // 2. バイナリデータ（Blob）として画像を取得
-      const imageBlob = await response.blob();
-      const base64Image = URL.createObjectURL(imageBlob);
-
-      setGeneratedImage(base64Image);
-      setIsLoading(false);
+      const imageUrl = URL.createObjectURL(blob);
+      setGeneratedImage(imageUrl);
     } catch (error) {
-    console.error("生成に失敗しました:", error);
+      console.error("生成に失敗しました:", error);
+    } finally{
+      setIsLoading(false);
     };
   };
 
   const handleSaveImage = async () => {
-    if (!generatedImage) {
-      return;
-    }
+    if (!generatedImage) return;
 
-    const fileName = `${prompt}.png`;
+    const fileName = `${prompt}_${Date.now()}.png`;
+  
+    // URLからBlobを再取得
+    const response = await fetch(generatedImage);
+    const blob = await response.blob();
 
-    // Base64文字列からプレフィックスを削除
-    const base64Data = generatedImage.replace(/^data:image\/png;base64,/, "");
-
-    // Base64をバイナリデータに変換
-    const binaryData = Uint8Array.from(atob(base64Data), (char) =>
-      char.charCodeAt(0)
-    );
-
-    // 画像をストレージにアップロード
     const { error } = await supabase.storage
       .from("generate-image")
-      .upload(fileName, binaryData.buffer, {
+      .upload(fileName, blob, {
         contentType: "image/png",
       });
 
