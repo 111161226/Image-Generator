@@ -3,12 +3,21 @@ import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: "/Image-Generator/",          // 前後のスラッシュを確認してください
   plugins: [react()],
+  // --- ここから追加 ---
+  server: {
+    proxy: {
+      '/hf-proxy': {
+        target: 'https://api-inference.huggingface.co',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/hf-proxy/, ''),
+      },
+    },
+  },
+  // --- ここまで追加 ---
   build: {
     rollupOptions: {
       output: {
-        // ライブラリを別ファイルに分割して500kB警告を回避する
         manualChunks(id) {
           if (id.includes('node_modules')) {
             return 'vendor';
@@ -16,7 +25,6 @@ export default defineConfig({
         }
       }
     },
-    // チャンクサイズの警告しきい値を1000kBに引き上げる
     chunkSizeWarningLimit: 1000,
   }
 })

@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "./utils/supabase";
 import { InferenceClient } from "@huggingface/inference";
 
-const hf = new InferenceClient(import.meta.env.VITE_STABILITY_API_KEY);
+const hf = new InferenceClient(import.meta.env.VITE_STABILITY_API_KEY, {
+  baseUrl: "/hf-proxy"
+});
 
 function App() {
   const [imageList, setImageList] = useState<string[]>([]);
