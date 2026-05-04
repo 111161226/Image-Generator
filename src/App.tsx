@@ -53,32 +53,26 @@ function App() {
 
   const handleGenerateImage = async () => {
     setIsLoading(true);
+
     try {
-      const response = await fetch("/hf-api/models/stabilityai/stable-diffusion-xl-base-1.0", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${import.meta.env.VITE_STABILITY_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          inputs: prompt,
-        }),
+      // プロンプトが空でないか確認
+      if (!prompt) return alert("プロンプトを入力してください");
+
+      const blob = await hf.textToImage({
+        model: "stabilityai/stable-diffusion-xl-base-1.0",
+        inputs: prompt,
+        parameters: {
+          manual_inference_endpoint: false 
+        }
       });
 
-      // 404が出た場合に詳細を確認するためのログ
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("APIエラー詳細:", errorText);
-        throw new Error(`エラー: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      setGeneratedImage(URL.createObjectURL(blob));
+      const imageUrl = URL.createObjectURL(blob as Blob);
+      setGeneratedImage(imageUrl);
     } catch (error) {
       console.error("生成に失敗しました:", error);
     } finally {
       setIsLoading(false);
-    }
+    };
   };
 
   const handleSaveImage = async () => {
