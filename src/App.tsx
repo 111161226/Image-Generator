@@ -1,16 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./utils/supabase";
-import { InferenceClient } from "@huggingface/inference";
-
-const hf = new InferenceClient(import.meta.env.VITE_STABILITY_API_KEY);
 
 function App() {
   const [imageList, setImageList] = useState<string[]>([]);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  const model = "stabilityai/stable-diffusion-xl-base-1.0";
 
   useEffect(() => {
     fetchImages();
@@ -53,20 +48,25 @@ function App() {
 
   const handleGenerateImage = async () => {
     setIsLoading(true);
-
     try {
-      const blob: Blob = await hf.textToImage({
-        model: model,
-        inputs: prompt,
-      }) as any;
+      const response = await fetch("/hf-api/models/stabilityai/stable-diffusion-xl-base-1.0", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${import.meta.env.VITE_STABILITY_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ inputs: prompt }),
+      });
 
-      const imageUrl = URL.createObjectURL(blob);
-      setGeneratedImage(imageUrl);
+      if (!response.ok) throw new Error("生成失敗");
+
+      const blob = await response.blob();
+      setGeneratedImage(URL.createObjectURL(blob));
     } catch (error) {
-      console.error("生成に失敗しました:", error);
-    } finally{
+      console.error(error);
+    } finally {
       setIsLoading(false);
-    };
+    }
   };
 
   const handleSaveImage = async () => {

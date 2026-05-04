@@ -1,52 +1,42 @@
-name: Deploy static content to Pages
+name: Deploy to Vercel
 
 on:
   push:
     branches: ['master']
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: 'pages'
-  cancel-in-progress: true
-
 jobs:
-  # ビルドジョブ
-  build:
+  deploy:
     runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Set up Node
-        uses: actions/setup-node@v4 # v4に更新
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: 'npm'
+
       - name: Install dependencies
         run: npm install
-      - name: Build
-        run: npm run build
-        env: 
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          # ビルド時に必要な環境変数をここで渡す
           VITE_STABILITY_API_KEY: ${{ secrets.VITE_STABILITY_API_KEY }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3 # 最新の安定版
-        with:
-          path: './dist'
 
-  # デプロイジョブ
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build # buildジョブが終わってから実行
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4 # v4に更新
+      - name: Deploy Project Artifacts to Vercel
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
