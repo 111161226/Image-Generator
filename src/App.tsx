@@ -55,15 +55,22 @@ function App() {
           "Authorization": `Bearer ${import.meta.env.VITE_STABILITY_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ inputs: prompt }),
+        body: JSON.stringify({ 
+          inputs: prompt,
+        }),
       });
 
-      if (!response.ok) throw new Error("生成失敗");
+      // 404が出た場合に詳細を確認するためのログ
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("APIエラー詳細:", errorText);
+        throw new Error(`エラー: ${response.status}`);
+      }
 
       const blob = await response.blob();
       setGeneratedImage(URL.createObjectURL(blob));
     } catch (error) {
-      console.error(error);
+      console.error("生成に失敗しました:", error);
     } finally {
       setIsLoading(false);
     }
