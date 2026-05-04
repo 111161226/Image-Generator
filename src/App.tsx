@@ -3,9 +3,8 @@ import { supabase } from "./utils/supabase";
 import { InferenceClient } from "@huggingface/inference";
 
 const hf = new InferenceClient(import.meta.env.VITE_STABILITY_API_KEY, {
-  baseUrl: "/hf-proxy"
-});
-
+  baseAddress: "/hf-proxy" 
+} as any);
 function App() {
   const [imageList, setImageList] = useState<string[]>([]);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -66,7 +65,7 @@ function App() {
         }
       });
 
-      const imageUrl = URL.createObjectURL(blob as Blob);
+      const imageUrl = URL.createObjectURL(blob as unknown as Blob);
       setGeneratedImage(imageUrl);
     } catch (error) {
       console.error("生成に失敗しました:", error);
