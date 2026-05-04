@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "./utils/supabase";
 import { InferenceClient } from "@huggingface/inference";
 
+const hf = new InferenceClient(import.meta.env.VITE_STABILITY_API_KEY);
+
 function App() {
   const [imageList, setImageList] = useState<string[]>([]);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -51,7 +53,6 @@ function App() {
 
   const handleGenerateImage = async () => {
     setIsLoading(true);
-    const hf = new InferenceClient(import.meta.env.VITE_STABILITY_API_KEY);
 
     try {
       const blob: Blob = await hf.textToImage({
