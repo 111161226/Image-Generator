@@ -15,14 +15,13 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20 # 安定した最新版を使用
+          node-version: 20
           cache: 'npm'
 
       - name: Install Dependencies
         run: npm install
 
       - name: Install Latest Vercel CLI
-        # ここでバージョンを固定せず @latest を指定して強制更新します
         run: npm install -g vercel@latest
 
       - name: Pull Vercel Environment Information
@@ -32,8 +31,17 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build Project Artifacts
+        # ここでGitHub SecretsをViteのビルドプロセスに渡します
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VITE_STABILITY_API_KEY: ${{ secrets.VITE_STABILITY_API_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Deploy Project Artifacts to Vercel
-        # ビルド済みの成果物(.vercel/output)をデプロイします
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
